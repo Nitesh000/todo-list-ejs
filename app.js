@@ -7,46 +7,43 @@ const _ = require("lodash");
 
 const app = express();
 
-app.set('view engine', 'ejs');
+app.set("view engine", "ejs");
 
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
-mongoose.connect("mongodb+srv://mycluster:Mycluster001@mycluster.ahfd6ob.mongodb.net/todolistDB", {useNewUrlParser : true});
+mongoose.connect("{mongodb cluster link}", { useNewUrlParser: true });
 
 const itemSchema = {
-  name : String
+  name: String
 };
 
 const Item = mongoose.model("Item", itemSchema);
 
-const item1 = new Item ({
-  name : "Welcome to the todolist!"
+const item1 = new Item({
+  name: "Welcome to the todolist!"
 });
 
 const item2 = new Item({
-  name : "Hit the + button to add a new item."
+  name: "Hit the + button to add a new item."
 });
 
 const item3 = new Item({
-  name : "<-- Hit this to delete an item."
+  name: "<-- Hit this to delete an item."
 });
 
-const defaultItems = [item1,item2,item3];
+const defaultItems = [item1, item2, item3];
 const listSchema = {
-  name : String,
-  items : [itemSchema]
+  name: String,
+  items: [itemSchema]
 };
 
 const List = mongoose.model("List", listSchema);
 
-
-app.get("/", function(req, res) {
-
+app.get("/", function (req, res) {
   Item.find({}, (err, foundItems) => {
-
-    if(foundItems.length === 0) {
-      Item.insertMany(defaultItems, (err)=> {
-        if(err) {
+    if (foundItems.length === 0) {
+      Item.insertMany(defaultItems, (err) => {
+        if (err) {
           console.log(err);
         } else {
           console.log("Default items have been added.");
@@ -54,26 +51,25 @@ app.get("/", function(req, res) {
         res.redirect("/");
       });
     } else {
-      res.render("list", {listTitle: "Today", newListItems: foundItems});
+      res.render("list", { listTitle: "Today", newListItems: foundItems });
     }
   });
 });
 
-app.post("/", function(req, res){
-
+app.post("/", function (req, res) {
   const itemName = req.body.newItem;
   const listName = req.body.list;
 
   const item = new Item({
-    name : itemName
+    name: itemName
   });
 
-  if(listName === "Today") {
+  if (listName === "Today") {
     item.save();
     res.redirect("/");
   } else {
-    List.findOne({name : listName}, (err, foundList) => {
-      if(err) {
+    List.findOne({ name: listName }, (err, foundList) => {
+      if (err) {
         console.log(err);
       } else {
         foundList.items.push(item);
@@ -84,54 +80,60 @@ app.post("/", function(req, res){
   }
 });
 
-app.post("/delete", (req, res)=> {
+app.post("/delete", (req, res) => {
   const checkedItemsID = req.body.checkbox;
   const listName = req.body.listName;
 
-  if(listName === "Today") {
+  if (listName === "Today") {
     Item.findByIdAndRemove(checkedItemsID, (err) => {
-      if(err) {
+      if (err) {
         console.log(err);
       } else {
-        console.log("Item deleted.")
+        console.log("Item deleted.");
         res.redirect("/");
       }
-    })
+    });
   } else {
-    List.findOneAndUpdate({name : listName}, {$pull : {items : {_id : checkedItemsID}}}, (err, foundItem) =>{
-      if(err) {
-        console.log(err);
-      } else {
-        res.redirect("/" + listName);
+    List.findOneAndUpdate(
+      { name: listName },
+      { $pull: { items: { _id: checkedItemsID } } },
+      (err, foundItem) => {
+        if (err) {
+          console.log(err);
+        } else {
+          res.redirect("/" + listName);
+        }
       }
-    })
+    );
   }
-
 });
 
-app.get("/:newRoute", (req, res)=> {
+app.get("/:newRoute", (req, res) => {
   const customeRoute = _.capitalize(req.params.newRoute);
 
-  List.findOne({name : customeRoute}, (err, foundList)=> {
-    if(!err) {
-      if(!foundList) {
+  List.findOne({ name: customeRoute }, (err, foundList) => {
+    if (!err) {
+      if (!foundList) {
         //create new list
         const list = new List({
-          name : customeRoute,
-          items : defaultItems
+          name: customeRoute,
+          items: defaultItems
         });
         list.save();
-        console.log("item saved.")
+        console.log("item saved.");
         res.redirect("/" + customeRoute);
       } else {
         //show an existing list
-        res.render("list", {listTitle: foundList.name , newListItems: foundList.items});
+        res.render("list", {
+          listTitle: foundList.name,
+          newListItems: foundList.items
+        });
       }
     }
-  })  
+  });
 });
 
-app.get("/about", function(req, res){
+app.get("/about", function (req, res) {
   res.render("about");
 });
 
@@ -140,6 +142,6 @@ if (port == null || port == "") {
   port = 3000;
 }
 
-app.listen(port, function() {
+app.listen(port, function () {
   console.log("Server started successfully");
 });
